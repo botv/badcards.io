@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const game = require('../modules/game');
 const status = require('http-status');
 const router = express.Router();
 
