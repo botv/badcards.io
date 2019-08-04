@@ -1,12 +1,65 @@
+@import 'node_modules/bootstrap/scss/functions';
+@import 'node_modules/bootstrap/scss/variables';
+@import 'node_modules/bootstrap/scss/mixins';
+
 html, body {
   font-family: 'Poppins', sans-serif;
 }
 
-h1 {
+.header {
   font-family: 'Saira Stencil One', cursive;
-  font-size: 50px;
 }
 
-h2 {
+h1 {
+  font-size: 3.5rem !important;
+}
 
+.navbar {
+  max-height: 70px;
+}
+
+.pt-nav {
+  padding-top: 70px;
+}
+
+.mt-nav {
+  margin-top: 90px;
+}
+
+.bc-card {
+  font-weight: bold;
+  height: 200px;
+
+  &:hover {
+    cursor: pointer;
+    background-color: #f2f2f2;
+  }
+}
+
+.rounded-top {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.vh-25 {
+  height: 25vh;
+}
+
+.vh-75 {
+  height: 75vh;
+}
+
+.card-columns {
+  @include media-breakpoint-only(xl) {
+    column-count: 4;
+  }
+  @include media-breakpoint-only(lg) {
+    column-count: 4;
+  }
+  @include media-breakpoint-only(md) {
+    column-count: 2;
+  }
+  @include media-breakpoint-only(sm) {
+    column-count: 2;
+  }
 }
