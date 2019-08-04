@@ -7,4 +7,9 @@ router.get('/*', (req, res) => {
 	res.sendFile(path.resolve(__dirname, '../public/index.html'));
 });
 
+router.post('/enter', (req, res) => {
+	console.log(req.body.nickname);
+	res.sendStatus(status.OK);
+});
+
 module.exports = router;
