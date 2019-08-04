@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const Player = require('../player');
 const Deck = require('../deck');
 
@@ -17,7 +16,7 @@ class Game {
 		cardSubmissionTime: 30
 	};
 
-	constructor(options) {
+	constructor(id, options) {
 		this.options = options || Game.defaultOptions;
 
 		// Players & cards
@@ -47,7 +46,10 @@ class Game {
 		this.gameHasEnded = false;
 
 		// Game id
-		this.gameId = crypto.randomBytes(20).toString('hex');
+		this.id = id;
+
+		// Destruction callback will be set by the gamelist post init
+		this.destructionCallback = ()=>{};
 	}
 
 
@@ -68,12 +70,12 @@ class Game {
 
 	addPlayer(socket, name, completion) {
 		let newPlayer;
-		// If max players has not been reached, send gameId and add to list
+		// If max players has not been reached, send game id and add to list
 		// Otherwise, reject join
 		if (this.players.count === (this.options.maxPlayers || Game.defaultOptions.maxPlayers)) {
 			newPlayer = new Player(socket, name);
 			this.players.push(newPlayer);
-			completion(true, this.gameId);
+			completion(true);
 		} else {
 			return completion(false)
 		}
@@ -88,6 +90,17 @@ class Game {
 		if (this.players.count >= (this.options.minPlayers || Game.defaultOptions.minPlayers)) {
 			this.startGame();
 		}
+
+		// Setup socket for disconnect
+		let self = this;
+		socket.on('disconnect', ()=>{
+			self.removePlayer(socket, (gameIsEmpty)=>{
+				// destroy self if game is empty
+				if (gameIsEmpty) {
+					self.destructionCallback(self.id);
+				}
+			});
+		});
 
 		// Setup chat
 		this.setupChat(socket);

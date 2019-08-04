@@ -87,7 +87,12 @@ class Player {
 			if (self.hasChosen || !self.isCardCzar) { return; }
 
 			self.hasChosen = true;
-			self.cardChosen = cardList.filter(card => card.number === cardNumber);
+			let cardChosen = cardList.filter(card => card.number === cardNumber);
+
+			// If card was not in cardlist, reject
+			if (cardChosen.length < 1) { return completion(false) }
+
+			self.cardChosen = cardChosen[0];
 
 			completion(self.cardChosen);
 		});

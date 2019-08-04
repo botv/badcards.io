@@ -28,4 +28,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // Set up routers
 app.use('/', indexRouter);
 
+// Socket io
+app.io = indexRouter.io;
+
 module.exports = app;
