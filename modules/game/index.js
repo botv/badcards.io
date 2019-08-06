@@ -61,7 +61,7 @@ class Game {
 		socket.on('chat.send', (message)=>{
 			self.players.forEach((player)=>{
 				// Emit chat.receive event (playerName, message
-				player.socket.emit('chat.receive', player.name, message);
+				player.socket.emit('chat.receive', player.nickname, message);
 			});
 		});
 	}
@@ -69,7 +69,7 @@ class Game {
 	sendGameInfo(player) {
 		let gameInfo = {
 			table: this.table,
-			players: this.players.map(player => player.name),
+			players: this.players.map(player => player.nickname),
 			blackCard: this.blackCard,
 			gameHasStarted: this.gameHasStarted,
 			cardsAreVisible: this.selectionOpen,
@@ -143,7 +143,7 @@ class Game {
 		// Emit removal to all other players
 		this.players.forEach((player)=>{
 			// Send game.player.disconnect event (name, id, skipRound)
-			player.socket.emit('game.player.disconnect', removedPlayer.name, removedPlayer.socket.id, removedPlayer.isCardCzar);
+			player.socket.emit('game.player.disconnect', removedPlayer.nickname, removedPlayer.socket.id, removedPlayer.isCardCzar);
 		});
 
 		// If player list is empty, destroy game (completion false)
@@ -182,7 +182,7 @@ class Game {
 				player.socket.emit('game.winner.self', winner.wonCards);
 			} else {
 				// Emit game.winner.player event (name, wonCards)
-				player.socket.emit('game.winner.player', winner.name, winner.wonCards);
+				player.socket.emit('game.winner.player', winner.nickname, winner.wonCards);
 			}
 		});
 
@@ -224,7 +224,7 @@ class Game {
 		this.players.forEach((player, index)=>{
 			// Reset all players for game
 			player.resetRound(self.deck, (self.options || Game.defaultOptions), (index === czarIndex));
-			player.socket.emit('game.round.start', self.blackCard, self.czar.name, player.isCardCzar, self.getScores());
+			player.socket.emit('game.round.start', self.blackCard, self.czar.nickname, player.isCardCzar, self.getScores());
 
 			// Request cards from all players but czar
 			if (!player.isCardCzar) {
@@ -244,7 +244,7 @@ class Game {
 					// Alert all other players that the card has been submitted
 					self.players.forEach((playerNest)=>{
 						// Send the game.cards.submit event (playerName, cardsPerGroup, cardGroupCount)
-						playerNest.socket.emit('game.cards.submit', playerNest.name, self.blackCard.spaces, self.table.length);
+						playerNest.socket.emit('game.cards.submit', playerNest.nickname, self.blackCard.spaces, self.table.length);
 					});
 
 					// If this submission has filled the table, request selection
@@ -326,7 +326,7 @@ class Game {
 				player.socket.emit('game.round.winner.self', winner.cardsSubmitted, score);
 			} else {
 				// Emit game.round.winner.player event (winnerName, winnerCards, gameScore)
-				player.socket.emit('game.round.winner.player', winner.name, winner.cardsSubmitted, score);
+				player.socket.emit('game.round.winner.player', winner.nickname, winner.cardsSubmitted, score);
 			}
 		});
 
@@ -349,7 +349,7 @@ class Game {
 	getScores() {
 		return this.players.map((player) => {
 			return {
-				name: player.name,
+				name: player.nickname,
 				score: player.wonCards.length
 			}
 		})

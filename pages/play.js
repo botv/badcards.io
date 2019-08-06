@@ -3,68 +3,129 @@ import Layout from '../components/Layout';
 import WhiteCard from '../components/WhiteCard';
 import Swiper from 'react-id-swiper';
 import BlackCard from '../components/BlackCard';
-import {Redirect, withRouter} from "react-router-dom";
-import {parse} from 'query-string';
-import Player from '../modules/player_client';
+import { withRouter } from 'react-router-dom';
+import { parse } from 'query-string';
+import Session from '../modules/session';
+import shortid from 'shortid';
 
 class Play extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { hand: [], czar: false, tableau: [], isLoaded: false, blackCard: {} };
+		this.state = { hand: [], czar: false, tableau: [], blackCard: {}, scores: [], isCzar: false, session: null };
 	}
 
 	componentDidMount() {
-		this.setState({
-			isLoaded: true,
-			hand: [
-				{ id: 1, text: 'Coat hanger abortions.' },
-				{ id: 2, text: 'Man meat.' },
-				{ id: 3, text: 'Autocannibalism.' },
-				{ id: 4, text: 'Vigorous jazz hands.' },
-				{ id: 5, text: 'Flightless birds.' },
-				{ id: 6, text: 'Pictures of boobs.' },
-				{ id: 7, text: 'The violation of our most basic human rights.' }
-			],
-			tableau: [
-				{ id: 1, text: 'Coat hanger abortions.' },
-				{ id: 2, text: 'Man meat.' },
-				{ id: 3, text: 'Autocannibalism.' },
-				{ id: 4, text: 'Vigorous jazz hands.' },
-				{ id: 5, text: 'Flightless birds.' },
-				{ id: 6, text: 'Pictures of boobs.' },
-				{ id: 7, text: 'The violation of our most basic human rights.' }
-			],
-			blackCard: { id: 1, text: 'What do I smell?' }
-		});
-
-
 		// Set up player for game info managing and rendering
 		const game = this.props.match.params.game;
-		const name = parse(this.props.location.search).name || 'noname';
+		const name = parse(this.props.location.search).name || `user${shortid.generate()}`;
 
 		// Set up player
-		let player = new Player(name, this);
+		const session = new Session(name, this);
 
 		// Join game
-		player.join(game);
-	}
+		session.join(game);
 
-	redirect(url) {
-		this.setState({
-			redirecting: true,
-			redirectTarget: url
-		})
-	}
+		// When player joins the game
+		session.onJoin(() => {
+			console.log('Successfully joined the game!');
+		});
 
-	renderRedirect() {
-		if (this.state.redirecting) {
-			return <Redirect to={this.state.redirectTarget} />
-		}
+		// When player receives a hand
+		session.onReceiveCards(cards => {
+			this.setState({ hand: cards });
+		});
+
+		// When game information is received
+		session.onReceiveGameInfo(gameInfo => {
+			console.log(gameInfo);
+
+			this.setState({
+				tableau: gameInfo.table,
+				blackCard: gameInfo.blackCard || session.blankCard,
+				scores: gameInfo.scores
+			});
+		});
+
+		// When another player joins
+		session.onPlayerJoin(nickname => {
+			console.log(`${nickname} joined the game`);
+		});
+
+		// When another player disconnects
+		session.onPlayerDisconnect(nickname => {
+			console.log(`${nickname} left the game`);
+		});
+
+		// When a chat message is received
+		session.onReceiveChatMessage((nickname, message) => {
+			console.log(`${nickname}: ${message}`);
+		});
+
+		// When the game is started
+		session.onGameStart(config => {
+			console.log('The game is starting...');
+			this.setState({
+				gameConfig: config,
+				winnerBlackCards: [],
+				round: 0
+			});
+		});
+
+		// When the game ends
+		session.onGameOver(winner => {
+			console.log(`${winner} won the game`);
+		});
+
+		// When the round starts
+		session.onRoundStart((blackCard, czar, isCzar, scores) => {
+			console.log('The round is starting');
+			this.setState({ blackCard, czar, isCzar, scores });
+		});
+
+		// When the server asks for a white card submission
+		session.onSubmitRequest(() => {
+			console.log('Submit a card for judging');
+			this.setState({ canSubmit: true });
+		});
+
+		// When the server asks the Czar to select a black card
+		session.onSelectRequest(() => {
+			console.log('Select a winning card');
+			this.setState({
+				canSelect: true,
+				canSubmit: false
+			});
+		});
+
+		// When the player submits their card
+		session.onSubmit(() => {
+			console.log('You submitted a card for judging');
+			this.setState({
+				tableau: session.getBlankCards(this.state.tableau.length + 1)
+			});
+		});
+
+		// When everyone has submitted their cards
+		session.onShowCards(cards => {
+			console.log('Everyone has submitted their cards');
+			cards = session.combineCards(cards);
+			this.setState({
+				tableau: cards
+			});
+		});
+
+		// When someone wins the round
+		session.onRoundOver((winner, cards, scores) => {
+			console.log(`${winner} won the round`);
+			this.setState({ scores });
+		});
+
+		this.setState({ session })
 	}
 
 	render() {
-		if (!this.state.isLoaded)	{
-			return ''
+		if (!this.state.session) {
+			return '';
 		}
 
 		return (
@@ -76,7 +137,18 @@ class Play extends React.Component {
 						</div>
 						<div className="col-md-8 col-lg-9 pt-5 pb-4">
 							<div className="card-columns">
-								{this.state.tableau.map(card => <WhiteCard key={card.id} text={card.text} className="mb-3" />)}
+								{this.state.tableau.map(card =>
+									<WhiteCard
+										key={card.id} text={card.text} className="mb-3"
+										onClick={cardId => {
+											if (this.state.isCzar) {
+												this.state.session.selectCard(cardId)
+											} else {
+												this.state.session.submitCard(cardId)
+											}
+										}}
+									/>
+								)}
 							</div>
 						</div>
 					</div>
@@ -101,9 +173,6 @@ class Play extends React.Component {
 							))}
 						</Swiper>
 					</div>
-				</div>
-				<div>
-					{this.renderRedirect()}
 				</div>
 			</Layout>
 		);

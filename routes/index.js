@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
-const GameList = require('../modules/game_list');
-const status = require('http-status');
+const GameList = require('../modules/game-list');
 const socket = require('socket.io');
 const router = express.Router();
 const io = socket();
@@ -20,13 +19,12 @@ router.post('/play', (req, res) => {
 
 /* SETUP SOCKET */
 
-io.on('connect', (socket)=>{
+io.on('connect', (socket) => {
 	// On attempt to join game
-	socket.on('self.join.req', (gameId, name)=>{
+	socket.on('self.join.req', (gameId, name) => {
 		gameList.joinGame(gameId, socket, name);
 	});
 });
 
 router.io = io;
-
 module.exports = router;
