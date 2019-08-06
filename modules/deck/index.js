@@ -30,15 +30,21 @@ class Deck {
 		return whiteCards;
 	}
 
+	/* INSTANCE */
+
 	// Deck is in charge of managing all cards
 	constructor() {
 		// Card lists
-		this.black = this.getBlackCards(cards);
-		this.white = this.getWhiteCards(cards);
+		this.black = Deck.getBlackCards(cards);
+		this.white = Deck.getWhiteCards(cards);
 
 		// Only use discard if black & white are empty
 		this.blackDiscard = [];
 		this.whiteDiscard = [];
+
+		// Cards are inactive and inaccessable when in players hands
+		this.blackInHand = [];
+		this.whiteInHand = [];
 	}
 
 	// Get cards, move them to discard
@@ -53,8 +59,8 @@ class Deck {
 		// Random choice from white
 		let card = this.white.pop(Math.floor(Math.random()*this.white.length));
 
-		// Push card to discard
-		this.whiteDiscard.push(card);
+		// Push card to inHand
+		this.whiteInHand.push(card);
 
 		// return card
 		return card;
@@ -71,11 +77,34 @@ class Deck {
 		// Random choice from black
 		let card = this.black.pop(Math.floor(Math.random()*this.black.length));
 
-		// Push card to discard
-		this.blackDiscard.push(card);
+		// Push card to inhand
+		this.blackInHand.push(card);
 
 		// return card
 		return card;
+	}
+
+	// Discard cards
+	discardWhite(discardCard) {
+		// Get index of card in inHand
+		let index = this.whiteInHand.findIndex(card => card.id === discardCard.id);
+
+		// Remove card from inHand
+		this.whiteInHand.splice(index, 1);
+
+		// Add card to discard
+		this.whiteDiscard.push(discardCard)
+	}
+
+	discardBlack(discardCard) {
+		// Get index of card in inHand
+		let index = this.blackInHand.findIndex(card => card.id === discardCard.id);
+
+		// Remove card from inHand
+		this.blackInHand.splice(index, 1);
+
+		// Add card to discard
+		this.blackDiscard.push(discardCard)
 	}
 
 }

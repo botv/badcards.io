@@ -10,7 +10,7 @@ const Home = () => (
 					<h6 className="text-muted text-sm text-center">Shit's burnin' in the canoe. Don't look at me!</h6>
 					<div className="card mt-3">
 						<div className="card-body">
-							<form action="/enter" method="POST" autoComplete="off">
+							<form action="/play" method="POST" autoComplete="off">
 								<div className="form-group">
 									<input name="nickname" type="text" className="form-control" placeholder="Nickname" required autoFocus />
 								</div>

@@ -9,6 +9,11 @@ app.set('port', port);
 
 // Start the server
 const server = http.createServer(app);
+
+// Connect socket io
+app.io.attach(server);
+
+// Listen on provided port
 server.listen(port);
 
 // Log errors

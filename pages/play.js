@@ -3,6 +3,9 @@ import Layout from '../components/Layout';
 import WhiteCard from '../components/WhiteCard';
 import Swiper from 'react-id-swiper';
 import BlackCard from '../components/BlackCard';
+import {Redirect, withRouter} from "react-router-dom";
+import {parse} from 'query-string';
+import Player from '../modules/player_client';
 
 class Play extends React.Component {
 	constructor(props) {
@@ -33,6 +36,30 @@ class Play extends React.Component {
 			],
 			blackCard: { id: 1, text: 'What do I smell?' }
 		});
+
+
+		// Set up player for game info managing and rendering
+		const game = this.props.match.params.game;
+		const name = parse(this.props.location.search).name || 'noname';
+
+		// Set up player
+		let player = new Player(name, this);
+
+		// Join game
+		player.join(game);
+	}
+
+	redirect(url) {
+		this.setState({
+			redirecting: true,
+			redirectTarget: url
+		})
+	}
+
+	renderRedirect() {
+		if (this.state.redirecting) {
+			return <Redirect to={this.state.redirectTarget} />
+		}
 	}
 
 	render() {
@@ -47,7 +74,7 @@ class Play extends React.Component {
 						<div className="col-md-4 col-lg-3 pt-5 border-right">
 							<BlackCard key={this.state.blackCard.id} text={this.state.blackCard.text} />
 						</div>
-						<div className="col-md-8 col-lg-9 py-5">
+						<div className="col-md-8 col-lg-9 pt-5 pb-4">
 							<div className="card-columns">
 								{this.state.tableau.map(card => <WhiteCard key={card.id} text={card.text} className="mb-3" />)}
 							</div>
@@ -75,9 +102,12 @@ class Play extends React.Component {
 						</Swiper>
 					</div>
 				</div>
+				<div>
+					{this.renderRedirect()}
+				</div>
 			</Layout>
 		);
 	};
 }
 
-export default Play;
+export default withRouter(Play);
