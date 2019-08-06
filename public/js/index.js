@@ -14,7 +14,7 @@ render((
 	<BrowserRouter>
 		<Switch>
 			<Route exact path='/' component={Home} />
-			<Route exact path='/play/:game' component={Play} />
+			<Route exact path='/play/:gameId' component={Play} />
 		</Switch>
 	</BrowserRouter>
 ), document.getElementById('root'));

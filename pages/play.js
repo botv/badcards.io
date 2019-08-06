@@ -16,17 +16,20 @@ class Play extends React.Component {
 
 	componentDidMount() {
 		// Set up player for game info managing and rendering
-		const game = this.props.match.params.game;
+		const gameId = this.props.match.params.gameId;
 		const name = parse(this.props.location.search).name || `user${shortid.generate()}`;
 
 		// Set up player
 		const session = new Session(name, this);
 
 		// Join game
-		session.join(game);
+		session.join(gameId);
 
 		// When player joins the game
-		session.onJoin(() => {
+		session.onJoin(err => {
+			if (err) {
+				return this.props.history.push('/');
+			}
 			console.log('Successfully joined the game!');
 		});
 
@@ -120,7 +123,7 @@ class Play extends React.Component {
 			this.setState({ scores });
 		});
 
-		this.setState({ session })
+		this.setState({ session });
 	}
 
 	render() {
@@ -142,9 +145,9 @@ class Play extends React.Component {
 										key={card.id} text={card.text} className="mb-3"
 										onClick={cardId => {
 											if (this.state.isCzar) {
-												this.state.session.selectCard(cardId)
+												this.state.session.selectCard(cardId);
 											} else {
-												this.state.session.submitCard(cardId)
+												this.state.session.submitCard(cardId);
 											}
 										}}
 									/>

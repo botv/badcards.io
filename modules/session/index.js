@@ -39,11 +39,7 @@ class Session {
 
 	onJoin(callback) {
 		this.socket.on('self.join.res', success => {
-			if (!success) {
-				return console.log('Failure during socket connection')
-			}
-
-			callback()
+			callback(!success);
 		});
 	}
 
