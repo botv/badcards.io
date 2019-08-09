@@ -40,7 +40,6 @@ class Play extends React.Component {
 
 		// When game information is received
 		session.onReceiveGameInfo(gameInfo => {
-			console.log(gameInfo);
 
 			this.setState({
 				tableau: gameInfo.table,
@@ -82,7 +81,9 @@ class Play extends React.Component {
 		// When the round starts
 		session.onRoundStart((blackCard, czar, isCzar, scores) => {
 			console.log('The round is starting');
-			this.setState({ blackCard, czar, isCzar, scores });
+			console.log(`${czar} is the Card Czar! ${isCzar}`);
+			// Set session again, it has been updated
+			this.setState({ blackCard, czar, isCzar, scores, tableau: [], submittedCards: [], session, hasSubmittedCard: false, hasSelectedCard: false});
 		});
 
 		// When the server asks for a white card submission
@@ -100,20 +101,35 @@ class Play extends React.Component {
 			});
 		});
 
-		// When the player submits their card
-		session.onSubmit(() => {
-			console.log('You submitted a card for judging');
+		// When a player submits their card
+		session.onSubmit((player, spaces, count) => {
+			console.log(`${player} submitted a card for judging`);
 			this.setState({
-				tableau: session.getBlankCards(this.state.tableau.length + 1)
+				tableau: Session.getBlankCards(count)
+			});
+		});
+
+		// When a card is removed from the tableau before they are revealed (player disconnect)
+		session.onRemove((player, spaces, count) => {
+			console.log(`${player}'s card was removed`);
+			this.setState({
+				tableau: Session.getBlankCards(count)
+			});
+		});
+
+		session.onRemoveVisible((player, cards) => {
+			console.log(`${player}'s card was removed`);
+			this.setState({
+				tableau: Session.combineCards(cards)
 			});
 		});
 
 		// When everyone has submitted their cards
 		session.onShowCards(cards => {
 			console.log('Everyone has submitted their cards');
-			cards = session.combineCards(cards);
+			let combinedCards = Session.combineCards(cards);
 			this.setState({
-				tableau: cards
+				tableau: combinedCards
 			});
 		});
 
@@ -122,6 +138,24 @@ class Play extends React.Component {
 			console.log(`${winner} won the round`);
 			this.setState({ scores });
 		});
+
+		this.onHandClick = (id, text) => {
+			if (!this.state.isCzar && !this.state.hasSubmittedCard) {
+				session.toggleCardSubmission(id, text,
+					this.state.submittedCards || [],
+					this.state.blackCard.spaces,
+					(cards, hasSubmitted, isSelected)=>{
+						this.setState({submittedCards: cards, hasSubmittedCard: hasSubmitted});
+					// make card selected in hand (graphical change)
+				});
+			}
+		};
+
+		this.onTableClick = (id, text) => {
+			if (this.state.isCzar && !this.state.hasSelectedCard) {
+				session.toggleCardSelection(id, text);
+			}
+		};
 
 		this.setState({ session });
 	}
@@ -142,14 +176,8 @@ class Play extends React.Component {
 							<div className="card-columns">
 								{this.state.tableau.map(card =>
 									<WhiteCard
-										key={card.id} text={card.text} className="mb-3"
-										onClick={cardId => {
-											if (this.state.isCzar) {
-												this.state.session.selectCard(cardId);
-											} else {
-												this.state.session.submitCard(cardId);
-											}
-										}}
+										cardId={card.id} text={card.text} className="mb-3" key={card.id}
+										handleClick={this.onTableClick}
 									/>
 								)}
 							</div>
@@ -171,7 +199,12 @@ class Play extends React.Component {
 						>
 							{this.state.hand.map(card => (
 								<div key={card.id} className="px-2">
-									<WhiteCard text={card.text} key={card.id} className="h-100 rounded-top" />
+									<WhiteCard text={card.text}
+														 cardId={card.id}
+														 isActive='false'
+														 className={`h-100 rounded-top ${card.isSelected ? 'card-selected' : ''}`}
+														 handleClick={this.onHandClick}
+									/>
 								</div>
 							))}
 						</Swiper>

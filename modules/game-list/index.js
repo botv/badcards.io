@@ -20,9 +20,8 @@ class GameList {
 
 		let newGame = new Game(id, options);
 
-		let self = this;
 		newGame.destructionCallback = (gameId)=>{
-			self.destroyGame(gameId);
+			this.destroyGame(gameId);
 		};
 		this.games.push(newGame);
 

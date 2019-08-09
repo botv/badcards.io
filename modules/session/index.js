@@ -2,6 +2,11 @@ import React from 'react';
 import io from 'socket.io-client';
 
 class Session {
+	/* Combine card texts to be displayed on the screen
+		 Ex:
+		 		input: [["card 1", "card 2"], ["card 3", "card 4"]]
+		 		output: ["card 1<hr>card 2", "card 3<hr>card 4"]
+	 */
 	static combineCards(cardList) {
 		if (cardList.length > 0) {
 			return cardList.map((cards) => {
@@ -16,25 +21,32 @@ class Session {
 		}
 	}
 
+	static getBlankCards(cardCount) {
+		return Array(cardCount).fill().map((_, index)=>{
+			return {
+				id: -index,
+				text: ''
+			}
+		});
+	}
+
 	constructor(nickname) {
 		this.nickname = nickname;
-
-		// Constants (class properties not enabled)
-		this.blankCard = { id: -1, text: '' };
 
 		// Socket
 		this.socket = io.connect('/', {
 			forceNew: true
 		});
+
+		// Constants (class properties not enabled)
+		this.blankCard = {
+			id: -999,
+			text: ''
+		};
 	}
 
 	join(game) {
 		this.socket.emit('self.join.req', game, this.nickname);
-	}
-
-	getBlankCards(cardCount) {
-		let self = this;
-		return Array(cardCount).map(() => self.blankCard);
 	}
 
 	onJoin(callback) {
@@ -50,9 +62,9 @@ class Session {
 	onReceiveGameInfo(callback) {
 		this.socket.on('game.info', gameInfo => {
 			if (!gameInfo.cardsAreVisible) {
-				gameInfo.table = this.getBlankCards(gameInfo.table.length);
+				gameInfo.table = Session.getBlankCards(gameInfo.table.length);
 			} else {
-				gameInfo.table = this.combineCards(gameInfo.table);
+				gameInfo.table = Session.combineCards(gameInfo.table);
 			}
 
 			callback(gameInfo)
@@ -98,6 +110,14 @@ class Session {
 		this.socket.on('game.cards.submit', callback);
 	}
 
+	onRemove(callback) {
+		this.socket.on('game.cards.remove.invisible', callback);
+	}
+
+	onRemoveVisible(callback) {
+		this.socket.on('game.cards.remove.visible', callback)
+	}
+
 	onShowCards(callback) {
 		this.socket.on('game.cards.show', callback);
 	}
@@ -109,8 +129,43 @@ class Session {
 		});
 	}
 
-	submitCard(card) {
-		this.socket.emit('self.submit.res', card);
+	toggleCardSelection(cardId, cardText) {
+		let selectedCard = {
+			id: cardId,
+			text: cardText
+		};
+
+		// select
+		this.selectCard(selectedCard);
+	}
+
+	toggleCardSubmission(cardId, cardText, submittedCards, blackCardCount, callback) {
+		let submittedCard = {
+			id: cardId,
+			text: cardText
+		};
+
+		// Is the card in the array?
+		let index = submittedCards.findIndex((card) => {return card.id === submittedCard.id});
+
+		// If card not in array, add to array and submit if requirements met
+		// If card in array, splice it
+		if (index < 0) {
+			submittedCards.push(submittedCard);
+			if (submittedCards.length >= blackCardCount) {
+				this.submitCards(submittedCards);
+				callback(submittedCards, true, true);
+			} else {
+				callback(submittedCards, false, true);
+			}
+		} else {
+			submittedCards.splice(index, 1);
+			callback(submittedCards, false, false);
+		}
+	}
+
+	submitCards(cards) {
+		this.socket.emit('self.submit.res', cards);
 	}
 
 	selectCard(card) {

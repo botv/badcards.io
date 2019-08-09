@@ -57,7 +57,9 @@ class Deck {
 		}
 
 		// Random choice from white
-		let card = this.white.pop(Math.floor(Math.random()*this.white.length));
+		let cardIndex = Math.floor(Math.random()*this.white.length);
+		let card = this.white[cardIndex];
+		this.white.splice(cardIndex, 1);
 
 		// Push card to inHand
 		this.whiteInHand.push(card);
@@ -75,7 +77,9 @@ class Deck {
 		}
 
 		// Random choice from black
-		let card = this.black.pop(Math.floor(Math.random()*this.black.length));
+		let cardIndex = Math.floor(Math.random()*this.black.length);
+		let card = this.black[cardIndex];
+		this.black.splice(cardIndex, 1);
 
 		// Push card to inhand
 		this.blackInHand.push(card);
