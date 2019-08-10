@@ -129,6 +129,10 @@ class Session {
 		});
 	}
 
+	onGameDestroyed(callback) {
+		this.socket.on('game.destroy', callback);
+	}
+
 	toggleCardSelection(cardId, cardText) {
 		let selectedCard = {
 			id: cardId,

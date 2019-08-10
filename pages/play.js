@@ -139,6 +139,11 @@ class Play extends React.Component {
 			this.setState({ scores });
 		});
 
+		// When the game room is destroyed
+		session.onGameDestroyed(()=>{
+			return this.props.history.push('/');
+		});
+
 		this.onHandClick = (id, text) => {
 			if (!this.state.isCzar && !this.state.hasSubmittedCard) {
 				session.toggleCardSubmission(id, text,

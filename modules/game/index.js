@@ -118,6 +118,9 @@ class Game {
 		// Setup socket for disconnect
 		socket.on('disconnect', ()=>{
 			this.removePlayer(socket, (gameIsEmpty)=>{
+				// Tell players that room is destroyed
+				this.players.forEach(player => player.socket.emit('game.destroy'));
+
 				// destroy self if game is empty
 				if (gameIsEmpty) {
 					this.destructionCallback(this.id);
@@ -171,8 +174,8 @@ class Game {
 			player.socket.emit('game.player.disconnect', removedPlayer.name, removedPlayer.socket.id, removedPlayer.isCardCzar);
 		});
 
-		// If player list is empty, destroy game (completion false)
-		if (this.players.length === 0) { completion(false); }
+		// If fewer than minimum players, destroy game (completion false)
+		if (this.players.length < Game.defaultOptions.minPlayers) { completion(true); }
 	}
 
 	// Start the game
