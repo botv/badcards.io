@@ -30,6 +30,7 @@ class Play extends React.Component {
 			if (err) {
 				return this.props.history.push('/');
 			}
+
 			console.log('Successfully joined the game!');
 		});
 
@@ -40,7 +41,6 @@ class Play extends React.Component {
 
 		// When game information is received
 		session.onReceiveGameInfo(gameInfo => {
-
 			this.setState({
 				tableau: gameInfo.table,
 				blackCard: gameInfo.blackCard || session.blankCard,
@@ -67,9 +67,11 @@ class Play extends React.Component {
 		session.onGameStart(config => {
 			console.log('The game is starting...');
 			this.setState({
-				gameConfig: config,
+				config: config,
 				winnerBlackCards: [],
-				round: 0
+				round: 0,
+				instructions: 'Loading...',
+				gameActive: true
 			});
 		});
 
@@ -81,23 +83,37 @@ class Play extends React.Component {
 		// When the round starts
 		session.onRoundStart((blackCard, czar, isCzar, scores) => {
 			console.log('The round is starting');
-			console.log(`${czar} is the Card Czar! ${isCzar}`);
+			console.log(`${czar} is the Card Czar!`);
 			// Set session again, it has been updated
-			this.setState({ blackCard, czar, isCzar, scores, tableau: [], submittedCards: [], session, hasSubmittedCard: false, hasSelectedCard: false});
+			this.setState({
+				blackCard,
+				czar,
+				isCzar,
+				scores,
+				tableau: [],
+				submittedCards: [],
+				session,
+				hasSubmittedCard: false,
+				hasSelectedCard: false,
+				instructions: isCzar
+					? 'Wait for the people to submit their cards'
+					: 'The round is starting...'
+			});
 		});
 
 		// When the server asks for a white card submission
 		session.onSubmitRequest(() => {
 			console.log('Submit a card for judging');
-			this.setState({ canSubmit: true });
+			this.setState({ canSubmit: true, instructions: 'Pick a white card for the Czar to judge.' });
 		});
 
-		// When the server asks the Czar to select a black card
+		// When the server asks the Czar to select a winning card
 		session.onSelectRequest(() => {
 			console.log('Select a winning card');
 			this.setState({
 				canSelect: true,
-				canSubmit: false
+				canSubmit: false,
+				instructions: 'Select the winning card.'
 			});
 		});
 
@@ -129,7 +145,8 @@ class Play extends React.Component {
 			console.log('Everyone has submitted their cards');
 			let combinedCards = Session.combineCards(cards);
 			this.setState({
-				tableau: combinedCards
+				tableau: combinedCards,
+				instructions: 'Just a minute while the Czar picks a winner.'
 			});
 		});
 
@@ -140,18 +157,18 @@ class Play extends React.Component {
 		});
 
 		// When the game room is destroyed
-		session.onGameDestroyed(()=>{
+		session.onGameDestroyed(() => {
 			return this.props.history.push('/');
 		});
 
-		this.onHandClick = (id, text) => {
+		this.handleCardClick = (id, text) => {
 			if (!this.state.isCzar && !this.state.hasSubmittedCard) {
-				session.toggleCardSubmission(id, text,
-					this.state.submittedCards || [],
-					this.state.blackCard.spaces,
-					(cards, hasSubmitted, isSelected)=>{
-						this.setState({submittedCards: cards, hasSubmittedCard: hasSubmitted});
-					// make card selected in hand (graphical change)
+				session.toggleCardSubmission(id, text, this.state.submittedCards || [], this.state.blackCard.spaces, (cards, hasSubmitted) => {
+					this.setState({
+						submittedCards: cards,
+						hasSubmittedCard: hasSubmitted,
+						instructions: 'Now wait for everyone else to submit their cards.'
+					});
 				});
 			}
 		};
@@ -166,8 +183,24 @@ class Play extends React.Component {
 	}
 
 	render() {
-		if (!this.state.session) {
+		const state = this.state;
+
+		if (!state.session) {
 			return '';
+		}
+
+		if (!state.gameActive) {
+			return (
+				<Layout>
+					<div className="container vh-100">
+						<div className="row vh-100 align-items-center">
+							<div className="col-sm-9 col-md-7 col-lg-5 mx-auto">
+								<h6 className="text-muted text-sm text-center">Waiting for players...</h6>
+							</div>
+						</div>
+					</div>
+				</Layout>
+			);
 		}
 
 		return (
@@ -175,11 +208,13 @@ class Play extends React.Component {
 				<div className="container-fluid vh-100">
 					<div className="row vh-75 pt-nav overflow-auto">
 						<div className="col-md-4 col-lg-3 pt-5 border-right">
-							<BlackCard key={this.state.blackCard.id} text={this.state.blackCard.text} />
+							<BlackCard key={state.blackCard.id} text={state.blackCard.text} />
+							<hr />
+							<p className="text-muted">{state.instructions}</p>
 						</div>
 						<div className="col-md-8 col-lg-9 pt-5 pb-4">
 							<div className="card-columns">
-								{this.state.tableau.map(card =>
+								{state.tableau.map(card =>
 									<WhiteCard
 										cardId={card.id} text={card.text} className="mb-3" key={card.id}
 										handleClick={this.onTableClick}
@@ -202,13 +237,14 @@ class Play extends React.Component {
 								576: { slidesPerView: 2 }
 							}}
 						>
-							{this.state.hand.map(card => (
+							{state.hand.map(card => (
 								<div key={card.id} className="px-2">
-									<WhiteCard text={card.text}
-														 cardId={card.id}
-														 isActive='false'
-														 className={`h-100 rounded-top ${card.isSelected ? 'card-selected' : ''}`}
-														 handleClick={this.onHandClick}
+									<WhiteCard
+										text={card.text}
+										cardId={card.id}
+										isActive={false}
+										className={`h-100 rounded-top ${card.isSelected ? 'card-selected' : ''}`}
+										handleClick={this.handleCardClick}
 									/>
 								</div>
 							))}
