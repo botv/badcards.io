@@ -16,18 +16,20 @@ class Game {
 	// 	cardSubmissionTime: 30
 	// };
 	// DEV:
-	static defaultOptions = {
-		cardsPerHand: 7,
-		cardsToWin: 2,
-		maxPlayers: 5,
-		minPlayers: 3,
-		gameRestartTime: 20,
-		cardSelectionTime: 1000,
-		cardSubmissionTime: 1000
+	static getDefaultOptions() {
+		return {
+			cardsPerHand: 7,
+			cardsToWin: 2,
+			maxPlayers: 5,
+			minPlayers: 3,
+			gameRestartTime: 20,
+			cardSelectionTime: 1000,
+			cardSubmissionTime: 1000
+		};
 	};
 
 	constructor(id, options) {
-		this.options = options || Game.defaultOptions;
+		this.options = options || Game.getDefaultOptions();
 
 		// Players & cards
 		this.players = [];
@@ -60,16 +62,16 @@ class Game {
 		this.id = id;
 
 		// Destruction callback will be set by the game_list post init
-		this.destructionCallback = ()=>{};
+		this.destructionCallback = () => {
+		};
 	}
-
 
 	/* RENDERING / INFO / UTILITY */
 
 	setupChat(socket) {
 		// Relay message from socket to all players
-		socket.on('chat.send', (message)=>{
-			this.players.forEach((player)=>{
+		socket.on('chat.send', (message) => {
+			this.players.forEach((player) => {
 				// Emit chat.receive event (playerName, message
 				player.socket.emit('chat.receive', player.name, message);
 			});
@@ -96,28 +98,28 @@ class Game {
 		let newPlayer;
 		// If max players has not been reached, send game id and add to list
 		// Otherwise, reject join
-		if (this.players.length !== (this.options.maxPlayers || Game.defaultOptions.maxPlayers)) {
+		if (this.players.length !== (this.options.maxPlayers || Game.getDefaultOptions().maxPlayers)) {
 			newPlayer = new Player(socket, name);
 			this.players.push(newPlayer);
 			completion(true);
 		} else {
-			return completion(false)
+			return completion(false);
 		}
 
 		// Log player join to all other players
-		this.players.forEach((player)=>{
+		this.players.forEach((player) => {
 			// Send game.player.join event (name, id)
 			player.socket.emit('game.player.join', newPlayer.name, newPlayer.socket.id);
 		});
 
 		// If min players has been reached, start the game
-		if ((this.players.length >= (this.options.minPlayers || Game.defaultOptions.minPlayers)) && !this.gameHasStarted) {
+		if ((this.players.length >= (this.options.minPlayers || Game.getDefaultOptions().minPlayers)) && !this.gameHasStarted) {
 			this.startGame();
 		}
 
 		// Setup socket for disconnect
-		socket.on('disconnect', ()=>{
-			this.removePlayer(socket, (gameIsEmpty)=>{
+		socket.on('disconnect', () => {
+			this.removePlayer(socket, (gameIsEmpty) => {
 				// Tell players that room is destroyed
 				this.players.forEach(player => player.socket.emit('game.destroy'));
 
@@ -154,28 +156,30 @@ class Game {
 		} else {
 			if (removedPlayer.cardsSubmitted.length > 0) {
 				let cardId = removedPlayer.cardsSubmitted[0].id;
-				let cardIndex = this.table.findIndex(cardList=>cardList[0].id === cardId);
-				if (cardIndex >=0 ) {
+				let cardIndex = this.table.findIndex(cardList => cardList[0].id === cardId);
+				if (cardIndex >= 0) {
 					this.table.splice(cardIndex, 1);
-					this.players.forEach((player)=>{
+					this.players.forEach((player) => {
 						if (this.submissionOpen) {
 							player.socket.emit('game.cards.remove.inisible', removedPlayer.name, this.blackCard.spaces, this.table.length);
 						} else {
 							player.socket.emit('game.cards.remove.visible', removedPlayer.name, this.table);
 						}
-					})
+					});
 				}
 			}
 		}
 
 		// Emit removal to all other players
-		this.players.forEach((player)=>{
+		this.players.forEach((player) => {
 			// Send game.player.disconnect event (name, id, skipRound)
 			player.socket.emit('game.player.disconnect', removedPlayer.name, removedPlayer.socket.id, removedPlayer.isCardCzar);
 		});
 
 		// If fewer than minimum players, destroy game (completion false)
-		if (this.players.length < Game.defaultOptions.minPlayers) { completion(true); }
+		if (this.players.length < Game.getDefaultOptions().minPlayers) {
+			completion(true);
+		}
 	}
 
 	// Start the game
@@ -184,20 +188,20 @@ class Game {
 		this.gameHasStarted = true;
 
 		// Select czar
-		let czarIndex = Math.floor(Math.random()*this.players.length);
+		let czarIndex = Math.floor(Math.random() * this.players.length);
 		this.czar = this.players[czarIndex];
 
 		// Reset deck
 		this.deck = new Deck();
 
-		this.players.forEach((player, index)=>{
+		this.players.forEach((player, index) => {
 			// Reset all players for game
-			player.reset(this.deck, (this.options || Game.defaultOptions), (index === czarIndex));
-			player.socket.emit('game.start', this.options || Game.defaultOptions);
+			player.reset(this.deck, (this.options || Game.getDefaultOptions()), (index === czarIndex));
+			player.socket.emit('game.start', this.options || Game.getDefaultOptions());
 		});
 
 		// Start the round
-		this.nextRound()
+		this.nextRound();
 	}
 
 	// End the game and restart in 20 seconds
@@ -206,7 +210,7 @@ class Game {
 		this.gameHasStarted = false;
 
 		// Tell the players the winner
-		this.players.forEach((player)=>{
+		this.players.forEach((player) => {
 			if (winner.socket.id === player.socket.id) {
 				// Emit game.winner.self event (wonCards)
 				player.socket.emit('game.winner.self', winner.wonCards);
@@ -217,9 +221,9 @@ class Game {
 		});
 
 		// Set timeout to restart game
-		setTimeout(()=>{
+		setTimeout(() => {
 			this.startGame();
-		}, (this.options.gameRestartTime || Game.defaultOptions.gameRestartTime) * 1000)
+		}, (this.options.gameRestartTime || Game.getDefaultOptions().gameRestartTime) * 1000);
 	}
 
 	/* GAME ROUND EVENTS */
@@ -227,7 +231,7 @@ class Game {
 	// Start the next round
 	nextRound(winnerIndex) {
 		// Select czar
-		let czarIndex = winnerIndex == null ? Math.floor(Math.random()*this.players.length) : winnerIndex;
+		let czarIndex = winnerIndex == null ? Math.floor(Math.random() * this.players.length) : winnerIndex;
 		this.czar = this.players[czarIndex];
 
 		// Set player count
@@ -247,8 +251,8 @@ class Game {
 		this.table = [];
 		this.tableMap = {};
 
-		this.players.forEach((player, index)=>{
-			player.resetRound(this.deck, (this.options || Game.defaultOptions), (index === czarIndex));
+		this.players.forEach((player, index) => {
+			player.resetRound(this.deck, (this.options || Game.getDefaultOptions()), (index === czarIndex));
 		});
 
 		// Start submission
@@ -260,18 +264,22 @@ class Game {
 		// Open submissions
 		this.submissionOpen = true;
 
-		this.players.forEach((player)=>{
+		this.players.forEach((player) => {
 			// Reset all players for game
 			player.socket.emit('game.round.start', this.blackCard, this.czar.name, player.isCardCzar, this.getScores());
 
 			// Request cards from all players but czar
 			if (!player.isCardCzar) {
-				player.requestCardSubmission(this.blackCard, (cards)=>{
+				player.requestCardSubmission(this.blackCard, (cards) => {
 					// Return if submission time is over
-					if (!this.submissionOpen) { return; }
+					if (!this.submissionOpen) {
+						return;
+					}
 
 					// Return if cards === false
-					if (!cards) { return; }
+					if (!cards) {
+						return;
+					}
 
 					// Push cards to table
 					this.table.push(cards);
@@ -280,7 +288,7 @@ class Game {
 					this.tableMap[cards[0].id] = player;
 
 					// Alert all other players that the card has been submitted
-					this.players.forEach((playerNest)=>{
+					this.players.forEach((playerNest) => {
 						// Send the game.cards.submit event (playerName, cardsPerGroup, cardGroupCount)
 						playerNest.socket.emit('game.cards.submit', player.name, this.blackCard.spaces, this.table.length);
 					});
@@ -294,9 +302,9 @@ class Game {
 		});
 
 		// Set a timeout to start the selection
-		this.submissionTimeout = setTimeout(()=>{
+		this.submissionTimeout = setTimeout(() => {
 			this.startRoundSelection();
-		}, (this.options.cardSubmissionTime || Game.defaultOptions.cardSubmissionTime) * 1000);
+		}, (this.options.cardSubmissionTime || Game.getDefaultOptions().cardSubmissionTime) * 1000);
 	}
 
 	// Close submissions and request selection
@@ -306,18 +314,22 @@ class Game {
 		this.selectionOpen = true;
 
 		// Send table to all players so that they can see submissions
-		this.players.forEach((player)=>{
+		this.players.forEach((player) => {
 			// Emit the game.cards.show event (cardList)
 			player.socket.emit('game.cards.show', this.table);
 		});
 
 		// Request selection
-		this.czar.requestCardCzarSelection(this.table, (cardList)=>{
+		this.czar.requestCardCzarSelection(this.table, (cardList) => {
 			// Return if selection is not open
-			if (!this.selectionOpen) { return; }
+			if (!this.selectionOpen) {
+				return;
+			}
 
 			// Close if no card or if card number not in table map
-			if (!cardList || cardList.length < 1 || !this.tableMap.hasOwnProperty(cardList[0].id)) { return; }
+			if (!cardList || cardList.length < 1 || !this.tableMap.hasOwnProperty(cardList[0].id)) {
+				return;
+			}
 
 			// Get winner and win card
 			let winner = this.tableMap[cardList[0].id];
@@ -332,9 +344,9 @@ class Game {
 		});
 
 		// Set a timeout to end the round
-		this.selectionTimeout = setTimeout(()=>{
+		this.selectionTimeout = setTimeout(() => {
 			// Select a random winner
-			let winnerIndex = Math.floor(Math.random()*this.playersInRound);
+			let winnerIndex = Math.floor(Math.random() * this.playersInRound);
 			let winner = this.players[winnerIndex];
 			winner.winCard(this.blackCard);
 
@@ -343,7 +355,7 @@ class Game {
 
 			// End round
 			this.endRound(winnerIndex);
-		}, (this.options.cardSelectionTime || Game.defaultOptions.cardSelectionTime) * 1000)
+		}, (this.options.cardSelectionTime || Game.getDefaultOptions().cardSelectionTime) * 1000);
 	}
 
 	// End a round
@@ -357,7 +369,7 @@ class Game {
 
 		// Emit winner and their cards to all players
 		let winner = this.players[winnerIndex];
-		this.players.forEach((player)=>{
+		this.players.forEach((player) => {
 			if (winner.socket.id === player.socket.id) {
 				// Emit game.round.winner.self event (winnerCards, gameScore)
 				player.socket.emit('game.round.winner.self', winner.cardsSubmitted, score);
@@ -368,8 +380,8 @@ class Game {
 		});
 
 		// Check to see if game is over
-		let gameWinnerIndex = this.players.findIndex( (player)=>{
-			return player.wonCards.length >= (this.options.cardsToWin || Game.defaultOptions.cardsToWin)
+		let gameWinnerIndex = this.players.findIndex((player) => {
+			return player.wonCards.length >= (this.options.cardsToWin || Game.getDefaultOptions().cardsToWin);
 		});
 		// If no game winner, next round
 		if (gameWinnerIndex < 0) {
@@ -387,15 +399,15 @@ class Game {
 			return {
 				name: player.name,
 				score: player.wonCards.length
-			}
-		})
+			};
+		});
 	}
 
 	// Discard the table
 	discard() {
-		this.table.forEach((card)=>{
-			this.deck.discardWhite(card)
-		})
+		this.table.forEach((card) => {
+			this.deck.discardWhite(card);
+		});
 	}
 
 }

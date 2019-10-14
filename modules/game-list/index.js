@@ -59,7 +59,7 @@ class GameList {
 	// Get a random open gameId for joining a game
 	getOpenGame() {
 		// Get games that have not reached max players
-		let openGames = this.games.filter(game => game.players.length < (game.options.maxPlayers || Game.defaultOptions.maxPlayers));
+		let openGames = this.games.filter(game => game.players.length < (game.options.maxPlayers || Game.getDefaultOptions().maxPlayers));
 
 		// If no open games, create one
 		if (openGames.length < 1) {
